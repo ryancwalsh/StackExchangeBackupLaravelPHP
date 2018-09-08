@@ -20,7 +20,7 @@ STACKAPPS_KEY=JuWsTgfG2CqjdghkhdgBkQ((
 
 
 ## If You Use This Package, Let Me Know!
-**This is the first package that I've ever made, and I'm super curious if anyone will ever use it. If you do try it out, I'd love for you to open an issue to say hi** (and of course to tell me any suggestions you have).
+**This is the first package that I've ever made, and I'm super curious if anyone will ever use it. If you do try it out, I'd love for you to [open an issue](https://github.com/ryancwalsh/StackExchangeBackupLaravelPHP/issues/new) to say hi** (and of course to tell me any suggestions you have).
 
 ___
 
