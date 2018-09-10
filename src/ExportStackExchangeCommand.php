@@ -27,7 +27,7 @@ class ExportStackExchangeCommand extends Command {
 
     public function __construct() {
         parent::__construct();
-        $this->exportStackExchangeHelper = new ExportStackExchangeHelper();
+        $this->exportStackExchangeHelper = new ExportStackExchangeHelper();        
     }
 
     /**
@@ -36,6 +36,7 @@ class ExportStackExchangeCommand extends Command {
      * @return array
      */
     public function handle() {
+        $this->exportStackExchangeHelper->setConsoleOutput($this->getOutput());
         if ($this->option('flushCache')) {
             Cache::flush();
         }

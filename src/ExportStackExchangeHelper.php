@@ -21,6 +21,12 @@ class ExportStackExchangeHelper {
     protected $redirect_uri;
     protected $version_prefix;
 
+    /**
+     *
+     * @var \Symfony\Component\Console\Style\OutputStyle 
+     */
+    protected $consoleOutput;
+
     public function __construct() {
         $this->key = config('stackapps.key');
         $this->version_prefix = config('stackapps.version_prefix');
@@ -36,6 +42,16 @@ class ExportStackExchangeHelper {
 
     public function setCode($code) {
         $this->code = $code;
+        return $this;
+    }
+
+    /**
+     * 
+     * @param \Symfony\Component\Console\Style\OutputStyle $consoleOutput
+     * @return $this
+     */
+    public function setConsoleOutput($consoleOutput) {
+        $this->consoleOutput = $consoleOutput;
         return $this;
     }
 
@@ -149,9 +165,18 @@ class ExportStackExchangeHelper {
      * @param string $data
      */
     public function saveToStorage($filename, $data) {
+        Log::debug('saveToStorage ' . $filename);
         $filename = $this->filename_prefix . $filename;
         Storage::disk('local')->put($filename, json_encode($data));
-        //Storage::disk('s3')->put($filename, json_encode($data));//TODO: Save to AWS S3
+        $this->writeToOuput('Saved to ' . $filename);
+        try {
+            Storage::disk('s3')->put($filename, json_encode($data));
+            $this->writeToOuput('Saved to AWS S3' . $filename);
+        } catch (\Exception $e) {
+            $error = 'There was a problem trying to write to AWS S3.';
+            $this->writeErrorToOuput('ERROR: ' . $error . ' Check the logs. ' . $filename);
+            Log::error($error . ' ' . $e);
+        }
     }
 
     /**
@@ -162,6 +187,32 @@ class ExportStackExchangeHelper {
     public function clean($siteName) {
         $slightlyCleanerStr = str_replace([' Stack Exchange', '&amp;', ' '], ['', 'and', '_'], $siteName);
         return preg_replace('/[^A-Za-z0-9\-\_]/', '', $slightlyCleanerStr); //https://stackoverflow.com/a/14114419/470749
+    }
+
+    /**
+     * 
+     * @param string $text
+     * @return $this
+     */
+    public function writeToOuput($text) {
+        if ($this->consoleOutput) {
+            $this->consoleOutput->writeln($text);
+        }
+        return $this;
+    }
+
+    /**
+     * 
+     * @param string $text
+     * @return $this
+     */
+    public function writeErrorToOuput($text) {
+        if ($this->consoleOutput) {
+            $style = new \Symfony\Component\Console\Formatter\OutputFormatterStyle('white', 'red', ['bold']); //white text on red background
+            $this->consoleOutput->getFormatter()->setStyle('error', $style);
+            $this->consoleOutput->writeln('<error>' . $text . '</error>');
+        }
+        return $this;
     }
 
 }
