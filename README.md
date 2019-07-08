@@ -4,7 +4,7 @@ Allows you to export JSON files of your most important data (questions, answers,
 ## Installation
 
  1. Sign up at https://stackapps.com/apps/oauth/register to receive a Client ID, Client Secret, and Key. (It's free, easy, and fast.)
- 1. Add this package into your Laravel project: `composer require ryancwalsh/stack-exchange-backup-laravel`
+ 1. Add this package into your Laravel project: `composer require ryancwalsh/stack-exchange-backup-laravel:dev-master`
  1. Edit your Laravel project's `.env` file to have your own StackApps values. A non-working sample is below.
  1. Run `php artisan exportStackExchange`. 
  1. Following the instructions in the terminal, you'll use your browser to visit a URL that will provide you with a temporary access token to paste into the terminal.
