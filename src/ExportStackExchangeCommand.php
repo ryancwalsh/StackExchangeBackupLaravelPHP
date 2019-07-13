@@ -9,6 +9,7 @@ use Illuminate\Console\Command;
 class ExportStackExchangeCommand extends Command {
 
     const CODE_CACHE_KEY = 'stackAppsCode';
+    const FILENAME_SAFE_FORMAT = "Y-m-d_His_T";
 
     /**
      * The name and signature of the console command.
@@ -51,7 +52,7 @@ class ExportStackExchangeCommand extends Command {
         }
         $this->exportStackExchangeHelper->setCode($code);
         $this->info(Carbon::now() . ' Starting.');
-        $this->exportStackExchangeHelper->setFilenamePrefix('StackExchange/' . Carbon::now()->format(\App\Helpers\ExtraTools::FILENAME_SAFE_FORMAT) . '/');
+        $this->exportStackExchangeHelper->setFilenamePrefix('StackExchange/' . Carbon::now()->format(self::FILENAME_SAFE_FORMAT) . '/');
         $mySites = $this->exportStackExchangeHelper->getMyAssociatedSites();
         $this->showListOfMySites($mySites);
         $this->info('===');
