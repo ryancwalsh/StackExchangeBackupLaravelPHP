@@ -45,7 +45,7 @@ class ExportStackExchangeCommand extends Command {
         if (!$code) {
             $url = $this->exportStackExchangeHelper->getOauthUrl();
             $this->info('Visit ' . $url);
-            $code = $this->ask('Then, the browser will bounce to a new URL. Copy the value of the `code` parameter in the URL. Paste it here:');
+            $code = $this->ask('Then, the browser will bounce to a new URL, which will contain a `code` parameter at the end. Copy the value of just the `code` parameter from the URL. Paste it here:');
             Cache::put(self::CODE_CACHE_KEY, $code, $this->exportStackExchangeHelper::SESSION_MINS);
             Cache::forget($this->exportStackExchangeHelper::ACCESS_TOKEN_CACHE_KEY);
             $this->info('Code now saved to cache for ' . $this->exportStackExchangeHelper::SESSION_MINS . ' minutes: ' . Cache::get(self::CODE_CACHE_KEY));
