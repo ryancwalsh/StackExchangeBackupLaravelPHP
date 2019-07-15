@@ -143,11 +143,56 @@ class ExportStackExchangeHelper {
                     ], 60);
             //Log::debug($responseJson);
             $filename = $this->clean($site['site_name']) . '/' . $endpoint . '/page_' . str_pad($page, 4, '0', STR_PAD_LEFT) . '.json';
-            $this->saveToStorage($filename, json_decode($responseJson, true));
             $responseArray = json_decode($responseJson, true);
+            $this->saveToStorage($filename, $responseArray);
+            foreach($responseArray['items'] as $item){
+              $url='';
+              if(!isset($item['question_id'])){
+                if($endpoint=="comments"){
+                  $url=$site["site_url"].'/a/'.$item['post_id'];
+                  #$this->writeToOuput($endpoint.": ".$url);
+                } else if($endpoint=="mentioned"){
+                  # mentions are not needed, cause they are usually replies to own q,a or comments
+                  # $this->writeToOuput($endpoint.": ".$site["site_url"].'/a/'.$item['post_id']);
+                } else {
+                  #$this->writeToOuput("$endpoint has no question id and no post_id\n"; var_dump($filename));;die
+                }
+              }else{
+                $url=$site["site_url"].'/questions/'.$item['question_id'];
+                # $this->writeToOuput($endpoint.": ".$url);
+              }
+              if($url){
+                $decodedURL=$this->doShortURLDecode($url);
+                $this->appendToStorage("urls.html", '<a href="'.$decodedURL.'">'.$url.'</a>');
+                echo '.';
+                sleep(1); // otherwise, you get rate limited on SE
+                // $this->writeToOuput('saved '.$decodedURL);
+              }
+            }
         } while ($responseArray['has_more']); //https://api.stackexchange.com/docs/paging
     }
 
+    /**
+     * reads the final URL for redirects
+     * @param  string $url short URL
+     * @return string      final URL
+     */
+    public function doShortURLDecode($url) {
+        $ch = @curl_init($url);
+        @curl_setopt($ch, CURLOPT_HEADER, TRUE);
+        @curl_setopt($ch, CURLOPT_NOBODY, TRUE);
+        @curl_setopt($ch, CURLOPT_FOLLOWLOCATION, FALSE);
+        @curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+        $response = @curl_exec($ch);
+        // clean the response of any strange special escape characters, that can occur in the curl output:
+        $cleanresponse= preg_replace('/[^A-Za-z0-9\- _,.:\n\/]/', '', $response);
+        preg_match('/Location: (.*)[\n\r]/', $cleanresponse, $a);
+        if (!isset($a[1])) {
+          echo '-';
+          return $url;
+        }
+        return parse_url($url, PHP_URL_SCHEME).'://'.parse_url($url, PHP_URL_HOST).$a[1];
+    }
     /**
      * Each of these methods operates on a single site at a time, identified by the site parameter. This parameter can be the full domain name (ie. "stackoverflow.com"), or a short form identified by api_site_parameter on the site object.
      * 
@@ -168,7 +213,8 @@ class ExportStackExchangeHelper {
         Log::debug('saveToStorage ' . $filename);
         $filename = $this->filename_prefix . $filename;
         Storage::disk('local')->put($filename, json_encode($data));
-        $this->writeToOuput('Saved to ' . $filename);
+        $this->writeToOuput("\nSaved to " . $filename);
+        echo "resolving URLS";
         try {
             Storage::disk('s3')->put($filename, json_encode($data));
             $this->writeToOuput('Saved to AWS S3' . $filename);
@@ -179,6 +225,17 @@ class ExportStackExchangeHelper {
         }
     }
 
+    /**
+     * appends plain data to a file
+     * @param  string $filename
+     * @param  string $data
+     */
+    public function appendToStorage($filename, $data) {
+        $filename = $this->filename_prefix . $filename;
+        Storage::disk('local')->append($filename, $data);
+        #$this->writeToOuput('Added '.$data.' to ' . $filename);
+    }
+    
     /**
      * 
      * @param string $siteName
