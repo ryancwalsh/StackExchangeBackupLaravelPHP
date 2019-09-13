@@ -6,7 +6,7 @@ Allows you to export JSON files of your most important data (questions, answers,
  1. I think this project requires PHP 7.3 or later, so be sure that your system complies.
  1. Sign up at https://stackapps.com/apps/oauth/register to receive a Client ID, Client Secret, and Key. (It's free, easy, and fast.)
  1. Create a Laravel project, and make sure that it works: https://laravel.com/docs/6.0/installation
- 1. Add this package into your Laravel project: `vagrant@vboxHomestead:~/Code/MyLaravelProject$ composer require ryancwalsh/stack-exchange-backup-laravel:^2.0.0`
+ 1. Add this package into your Laravel project: `vagrant@vboxHomestead:~/Code/MyLaravelProject$ composer require ryancwalsh/stack-exchange-backup-laravel:^2.0.1`
  1. Run `php artisan vendor:publish`, and if it gives you a choice, choose to publish from this package.
  1. Edit your Laravel project's `.env` file to have your own StackApps values. A non-working sample is below.
  1. Run `php artisan exportStackExchange`. There are also these options available:

@@ -10,7 +10,7 @@ use Storage;
 class ExportStackExchangeHelper {
 
     const API_URL = 'https://api.stackexchange.com'; #https://api.stackexchange.com/docs
-    const SESSION_MINS = 60;
+    const SESSION_SECONDS = 60 * 60;
     const ACCESS_TOKEN_CACHE_KEY = 'stackapps_access_token';
     const APP_FOLDER = 'app/';
     const SE_FOLDER = 'StackExchange/';
@@ -66,7 +66,7 @@ class ExportStackExchangeHelper {
      * @return string
      */
     public function getAccessTokenJson() {
-        $accessTokenResponseJsonString = Cache::remember(self::ACCESS_TOKEN_CACHE_KEY, self::SESSION_MINS, function () {//https://laravel.com/docs/5.6/cache#retrieving-items-from-the-cache
+        $accessTokenResponseJsonString = Cache::remember(self::ACCESS_TOKEN_CACHE_KEY, self::SESSION_SECONDS, function () {//https://laravel.com/docs/5.6/cache#retrieving-items-from-the-cache
                     $url = 'https://stackoverflow.com/oauth/access_token/json'; //https://api.stackexchange.com/docs/authentication
                     $payload = [
                         'form_params' => [
@@ -103,7 +103,7 @@ class ExportStackExchangeHelper {
      * @param int $cacheMinutes
      * @return string
      */
-    public function get($uri = '', array $options = [], $cacheMinutes = self::SESSION_MINS) {
+    public function get($uri = '', array $options = [], $cacheMinutes = self::SESSION_SECONDS) {
         $cacheKey = sha1($uri . json_encode($options));
         $response = Cache::remember($cacheKey, $cacheMinutes, function () use ($uri, $options) {//https://laravel.com/docs/5.6/cache#retrieving-items-from-the-cache      
                     $accessTokenResponseJsonString = $this->getAccessTokenJson();

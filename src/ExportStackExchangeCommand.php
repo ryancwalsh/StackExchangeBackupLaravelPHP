@@ -77,9 +77,9 @@ class ExportStackExchangeCommand extends Command {
             $codePasted = $this->ask('Then, the browser will bounce to a new URL. Copy the value of the `code` parameter in the URL. Paste it here:');
             $code = str_replace(self::SE_URL_BEGINNING, '', $codePasted); //just in case the user accidentally pasted the entire URL instead of just the `code` parameter.
             Log::debug('$code=' . $code);
-            Cache::put(self::CODE_CACHE_KEY, $code, $this->exportStackExchangeHelper::SESSION_MINS);
+            Cache::put(self::CODE_CACHE_KEY, $code, $this->exportStackExchangeHelper::SESSION_SECONDS);
             Cache::forget($this->exportStackExchangeHelper::ACCESS_TOKEN_CACHE_KEY);
-            $this->info('Code now saved to cache for ' . $this->exportStackExchangeHelper::SESSION_MINS . ' minutes: ' . Cache::get(self::CODE_CACHE_KEY));
+            $this->info('Code now saved to cache for ' . $this->exportStackExchangeHelper::SESSION_SECONDS . ' minutes: ' . Cache::get(self::CODE_CACHE_KEY));
         }
         $this->exportStackExchangeHelper->setCode($code);
     }

@@ -2,7 +2,7 @@
     "name": "ryancwalsh/stack-exchange-backup-laravel",
     "description": "My aim is to back up all of my questions and answers and anything else valuable in my accounts across all of the StackExchange sites (StackOverflow, SuperUser, https://apple.stackexchange.com/, https://askubuntu.com/, etc).",
     "type": "package",
-    "version": "2.0.0",
+    "version": "2.0.1",
     "require": {
         "guzzlehttp/guzzle": "^6.3",
         "php": "^7.3",
