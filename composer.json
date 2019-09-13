@@ -2,11 +2,14 @@
     "name": "ryancwalsh/stack-exchange-backup-laravel",
     "description": "My aim is to back up all of my questions and answers and anything else valuable in my accounts across all of the StackExchange sites (StackOverflow, SuperUser, https://apple.stackexchange.com/, https://askubuntu.com/, etc).",
     "type": "package",
+    "version": "2.0.0",
     "require": {
         "guzzlehttp/guzzle": "^6.3",
-        "php": "^7.2",
-        "laravel/framework": "^5.6",
-        "league/flysystem-aws-s3-v3": "^1.0"
+        "php": "^7.3",
+        "laravel/framework": "6.0.*",
+        "laravel/helpers": "^1.1",
+        "league/flysystem-aws-s3-v3": "^1.0",
+        "spatie/laravel-backup": "^6.4"
     },
     "autoload": {
         "psr-4": {

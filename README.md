@@ -5,13 +5,16 @@ Allows you to export JSON files of your most important data (questions, answers,
 
  1. I think this project requires PHP 7.3 or later, so be sure that your system complies.
  1. Sign up at https://stackapps.com/apps/oauth/register to receive a Client ID, Client Secret, and Key. (It's free, easy, and fast.)
- 1. Create a Laravel project, and make sure that it works: https://laravel.com/docs/5.8/installation#installing-laravel
- 1. Add this package into your Laravel project: `vagrant@vboxHomestead:~/Code/MyLaravelProject$ composer require ryancwalsh/stack-exchange-backup-laravel:dev-master --prefer-source`
+ 1. Create a Laravel project, and make sure that it works: https://laravel.com/docs/6.0/installation
+ 1. Add this package into your Laravel project: `vagrant@vboxHomestead:~/Code/MyLaravelProject$ composer require ryancwalsh/stack-exchange-backup-laravel:^2.0.0`
  1. Run `php artisan vendor:publish`, and if it gives you a choice, choose to publish from this package.
  1. Edit your Laravel project's `.env` file to have your own StackApps values. A non-working sample is below.
- 1. Run `php artisan exportStackExchange`. (Note that `php artisan exportStackExchange --flushCache` is an available option to clear the cached access code value.)
+ 1. Run `php artisan exportStackExchange`. There are also these options available:
+     1. `php artisan exportStackExchange --forgetCache` is an available option to clear the cached access code value.
+     1. `php artisan exportStackExchange --code=YOUR_CODE` is an available option to provide a code that you've already retrieved from StackExchange.
+     1. `php artisan exportStackExchange --S3=false` is an available option to skip uploading to Amazon S3.
  1. Following the instructions in the terminal, you'll use your browser to visit a URL that will provide you with a temporary access token to paste into the terminal.
- 1. Finished! The JSON files will appear in your `/storage/app/StackExchange` folder.
+ 1. Finished! The JSON files will appear in your `/storage/app/StackExchange` folder, and a zip of those files will appear in S3.
 
 ```
 # These are sample .env values:

@@ -12,12 +12,15 @@ class ExportStackExchangeHelper {
     const API_URL = 'https://api.stackexchange.com'; #https://api.stackexchange.com/docs
     const SESSION_MINS = 60;
     const ACCESS_TOKEN_CACHE_KEY = 'stackapps_access_token';
+    const APP_FOLDER = 'app/';
+    const SE_FOLDER = 'StackExchange/';
+    const DOT_ZIP = '.zip';
 
     protected $client_id;
     protected $client_secret;
     protected $code;
-    protected $filename_prefix;
     protected $key;
+    protected $moment_string;
     protected $redirect_uri;
     protected $version_prefix;
 
@@ -33,11 +36,6 @@ class ExportStackExchangeHelper {
         $this->client_id = config('stackapps.client_id');
         $this->redirect_uri = config('stackapps.redirect_uri');
         $this->client_secret = config('stackapps.client_secret');
-    }
-
-    public function setFilenamePrefix($filename_prefix) {
-        $this->filename_prefix = $filename_prefix;
-        return $this;
     }
 
     public function setCode($code) {
@@ -67,7 +65,7 @@ class ExportStackExchangeHelper {
      * 
      * @return string
      */
-    public function getAccessToken() {
+    public function getAccessTokenJson() {
         $accessTokenResponseJsonString = Cache::remember(self::ACCESS_TOKEN_CACHE_KEY, self::SESSION_MINS, function () {//https://laravel.com/docs/5.6/cache#retrieving-items-from-the-cache
                     $url = 'https://stackoverflow.com/oauth/access_token/json'; //https://api.stackexchange.com/docs/authentication
                     $payload = [
@@ -85,6 +83,15 @@ class ExportStackExchangeHelper {
                     //Log::debug('$accessTokenResponseJsonString = ' . $accessTokenResponseJsonString);
                     return $accessTokenResponseJsonString;
                 });
+        //Log::debug($accessTokenResponseJsonString);
+        return $accessTokenResponseJsonString;
+    }
+
+    /**
+     * @param string $accessTokenResponseJsonString
+     * @return string
+     */
+    public function getAccessTokenFromJson($accessTokenResponseJsonString) {
         $accessTokenArray = json_decode($accessTokenResponseJsonString, true);
         return $accessTokenArray['access_token'];
     }
@@ -98,8 +105,10 @@ class ExportStackExchangeHelper {
      */
     public function get($uri = '', array $options = [], $cacheMinutes = self::SESSION_MINS) {
         $cacheKey = sha1($uri . json_encode($options));
-        $response = Cache::remember($cacheKey, $cacheMinutes, function () use ($uri, $options) {//https://laravel.com/docs/5.6/cache#retrieving-items-from-the-cache                    
-                    $params = array_merge($options, ['code' => $this->code, 'access_token' => $this->getAccessToken(), 'key' => $this->key]);
+        $response = Cache::remember($cacheKey, $cacheMinutes, function () use ($uri, $options) {//https://laravel.com/docs/5.6/cache#retrieving-items-from-the-cache      
+                    $accessTokenResponseJsonString = $this->getAccessTokenJson();
+                    $accessToken = $this->getAccessTokenFromJson($accessTokenResponseJsonString);
+                    $params = array_merge($options, ['code' => $this->code, 'access_token' => $accessToken, 'key' => $this->key]);
                     //Log::debug(json_encode($params));
                     $fullUrl = self::API_URL . $this->version_prefix . $uri . '?' . http_build_query($params);
                     //Log::debug($fullUrl);
@@ -115,6 +124,7 @@ class ExportStackExchangeHelper {
      * @return array
      */
     public function getMyAssociatedSites() {
+        Log::debug('getMyAssociatedSites');
         //https://api.stackexchange.com/docs/sites ( https://api.stackexchange.com/docs/types/site )
         $responseJson = $this->get('/me/associated', ['pagesize' => 100], 60 * 12); //https://api.stackexchange.com/docs/me-associated-users
         $this->saveToStorage('my_sites.json', json_decode($responseJson, true));
@@ -133,7 +143,24 @@ class ExportStackExchangeHelper {
         $page = 0;
         do {
             $page++;
-            $responseJson = $this->get('/me/' . $endpoint, [
+            $responseJson = $this->getJsonFromApi($endpoint, $site_param, $page, $sort);
+            $filename = $this->clean($site['site_name']) . '/' . $endpoint . '/page_' . str_pad($page, 4, '0', STR_PAD_LEFT) . '.json';
+            $this->saveToStorage($filename, json_decode($responseJson, true));
+            $responseArray = json_decode($responseJson, true);
+        } while ($responseArray['has_more']); //https://api.stackexchange.com/docs/paging
+    }
+
+    /**
+     * 
+     * @param string $endpoint
+     * @param string $site_param
+     * @param int $page
+     * @param string $sort
+     * @return string
+     */
+    public function getJsonFromApi($endpoint, $site_param, $page, $sort) {
+        $responseJson = retry(2, function () use ($endpoint, $site_param, $page, $sort) {//https://laravel.com/docs/6.0/helpers#method-retry
+            $this->get('/me/' . $endpoint, [
                 'site' => $site_param,
                 'pagesize' => 100,
                 'page' => $page,
@@ -141,11 +168,9 @@ class ExportStackExchangeHelper {
                 'order' => 'desc',
                 'filter' => 'withbody'//https://api.stackexchange.com/docs/filters
                     ], 60);
-            //Log::debug($responseJson);
-            $filename = $this->clean($site['site_name']) . '/' . $endpoint . '/page_' . str_pad($page, 4, '0', STR_PAD_LEFT) . '.json';
-            $this->saveToStorage($filename, json_decode($responseJson, true));
-            $responseArray = json_decode($responseJson, true);
-        } while ($responseArray['has_more']); //https://api.stackexchange.com/docs/paging
+        }, 100); //see https://github.com/ryancwalsh/StackExchangeBackupLaravelPHP/issues/11
+        //Log::debug($responseJson);
+        return $responseJson;
     }
 
     /**
@@ -166,15 +191,50 @@ class ExportStackExchangeHelper {
      */
     public function saveToStorage($filename, $data) {
         Log::debug('saveToStorage ' . $filename);
-        $filename = $this->filename_prefix . $filename;
-        Storage::disk('local')->put($filename, json_encode($data));
-        $this->writeToOuput('Saved to ' . $filename);
+        $fullFilename = self::SE_FOLDER . $this->getMomentString() . '/' . $filename;
+        Storage::disk('local')->put($fullFilename, json_encode($data));
+        $this->writeToOuput('Saved to ' . $fullFilename);
+    }
+
+    /**
+     * After exportEachSite, zip all the json files, and copy that json file to S3
+     */
+    public function archiveToS3() {
+        $this->writeToOuput(__FUNCTION__);
+        $this->zipTheJsonFiles();
+        $this->copyZipFileToS3();
+    }
+
+    /**
+     * @return string
+     */
+    public function getMomentZipFileName() {
+        return $this->getMomentString() . self::DOT_ZIP;
+    }
+
+    /**
+     * @return string
+     */
+    public function getZipFileNameInStoragePathFolder() {
+        return storage_path(self::APP_FOLDER . self::SE_FOLDER . $this->getMomentZipFileName());
+    }
+
+    protected function zipTheJsonFiles() {
+        $this->writeToOuput(__FUNCTION__);
+        $this->createZipFileFromFolder(storage_path(self::APP_FOLDER . self::SE_FOLDER . $this->getMomentString()), $this->getZipFileNameInStoragePathFolder());
+    }
+
+    protected function copyZipFileToS3() {
+        $remoteFilename = self::SE_FOLDER . $this->getMomentZipFileName();
+        $this->writeToOuput(__FUNCTION__ . ' ' . $remoteFilename);
+        $localZipFile = $this->getZipFileNameInStoragePathFolder();
+        $data = file_get_contents($localZipFile);
         try {
-            Storage::disk('s3')->put($filename, json_encode($data));
-            $this->writeToOuput('Saved to AWS S3' . $filename);
+            Storage::disk('s3')->put($remoteFilename, $data);
+            $this->writeToOuput('Saved to AWS S3' . $remoteFilename);
         } catch (\Exception $e) {
             $error = 'There was a problem trying to write to AWS S3.';
-            $this->writeErrorToOuput('ERROR: ' . $error . ' Check the logs. ' . $filename);
+            $this->writeErrorToOuput('ERROR: ' . $error . ' Check the logs. ' . $remoteFilename);
             Log::error($error . ' ' . $e);
         }
     }
@@ -195,6 +255,7 @@ class ExportStackExchangeHelper {
      * @return $this
      */
     public function writeToOuput($text) {
+        Log::debug($text);
         if ($this->consoleOutput) {
             $this->consoleOutput->writeln($text);
         }
@@ -212,6 +273,70 @@ class ExportStackExchangeHelper {
             $this->consoleOutput->getFormatter()->setStyle('error', $style);
             $this->consoleOutput->writeln('<error>' . $text . '</error>');
         }
+        return $this;
+    }
+
+    /**
+     * @see https://stackoverflow.com/a/1334949/470749
+     * 
+     * @param string $folderPath
+     * @param string $destinationZipFileName
+     * @return bool
+     * @throws \Exception
+     */
+    public function createZipFileFromFolder($folderPath, $destinationZipFileName) {
+        $this->writeToOuput(__FUNCTION__ . ': ' . $folderPath . ' to ' . $destinationZipFileName);
+        if (!extension_loaded('zip') || !file_exists($folderPath)) {
+            throw new \Exception(__FUNCTION__ . ' could not start.');
+        }
+
+        $zip = new \ZipArchive();
+        if (!$zip->open($destinationZipFileName, \ZIPARCHIVE::CREATE)) {//be careful if using OVERWRITE as opposed to CREATE
+            throw new \Exception(__FUNCTION__ . ' could not begin writing zip file.');
+        }
+
+        $folderPathCleaned = str_replace('\\', '/', realpath($folderPath));
+
+        if (is_dir($folderPathCleaned) === true) {
+            $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($folderPathCleaned), \RecursiveIteratorIterator::SELF_FIRST);
+
+            foreach ($files as $file) {
+                $fileSlashesFixed = str_replace('\\', '/', $file);
+
+                // Ignore "." and ".." folders
+                if (in_array(substr($fileSlashesFixed, strrpos($fileSlashesFixed, '/') + 1), array('.', '..')))
+                    continue;
+
+                $fileRealPath = realpath($fileSlashesFixed);
+
+                if (is_dir($fileRealPath) === true) {
+                    $zip->addEmptyDir(str_replace($folderPathCleaned . '/', '', $fileRealPath . '/'));
+                } else if (is_file($fileRealPath) === true) {
+                    $zip->addFromString(str_replace($folderPathCleaned . '/', '', $fileRealPath), file_get_contents($fileRealPath));
+                }
+            }
+        } else if (is_file($folderPathCleaned) === true) {
+            $zip->addFromString(basename($folderPathCleaned), file_get_contents($folderPathCleaned));
+        }
+
+        return $zip->close();
+    }
+
+    /**
+     * 
+     * @return string
+     */
+    public function getMomentString() {
+        return $this->moment_string;
+    }
+
+    /**
+     * 
+     * @param string $moment_string
+     * @return $this
+     */
+    public function setMomentString($moment_string) {
+        $this->moment_string = $moment_string;
         return $this;
     }
 
