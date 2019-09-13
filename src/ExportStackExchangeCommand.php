@@ -11,6 +11,7 @@ class ExportStackExchangeCommand extends Command {
 
     const CODE_CACHE_KEY = 'stackAppsCode';
     const ENDPOINTS = ['answers' => 'activity', 'questions' => 'activity', 'comments' => 'creation', 'mentioned' => 'creation', 'favorites' => 'creation'];
+    const FILENAME_SAFE_FORMAT = "Y-m-d_His_T";
     const SE_URL_BEGINNING = 'https://stackexchange.com/oauth/login_success?code=';
 
     /**
@@ -44,7 +45,7 @@ class ExportStackExchangeCommand extends Command {
         try {
             $this->handleStackExchangeCode();
             $this->info(Carbon::now() . ' Starting.');
-            $this->exportStackExchangeHelper->setMomentString(Carbon::now()->format(\App\Helpers\ExtraTools::FILENAME_SAFE_FORMAT));
+            $this->exportStackExchangeHelper->setMomentString(Carbon::now()->format(self::FILENAME_SAFE_FORMAT));
             $mySites = $this->exportStackExchangeHelper->getMyAssociatedSites();
             $this->showListOfMySites($mySites);
             $this->info('===');
