@@ -11,7 +11,7 @@ Allows you to export JSON files of your most important data (questions, answers,
  1. Edit your Laravel project's `.env` file to have your own StackApps values. A non-working sample is below.
  1. Run `php artisan exportStackExchange`. There are also these options available:
      1. `php artisan exportStackExchange --forgetCache` is an available option to clear the cached access code value.
-     1. `php artisan exportStackExchange --code=YOUR_CODE` is an available option to provide a code that you've already retrieved from StackExchange.
+     1. `php artisan exportStackExchange --code="YOUR_CODE"` is an available option to provide a code that you've already retrieved from StackExchange.
      1. `php artisan exportStackExchange --S3=false` is an available option to skip uploading to Amazon S3.
  1. Following the instructions in the terminal, you'll use your browser to visit a URL that will provide you with a temporary access token to paste into the terminal.
  1. Finished! The JSON files will appear in your `/storage/app/StackExchange` folder, and a zip of those files will appear in S3.
