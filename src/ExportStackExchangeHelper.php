@@ -15,6 +15,7 @@ class ExportStackExchangeHelper {
     const APP_FOLDER = 'app/';
     const SE_FOLDER = 'StackExchange/';
     const DOT_ZIP = '.zip';
+    const PAUSE_BETWEEN_REQUESTS_MS = 200;
 
     protected $client_id;
     protected $client_secret;
@@ -114,7 +115,17 @@ class ExportStackExchangeHelper {
                     //Log::debug($fullUrl);
                     $httpClient = new HttpClient();
                     $response = $httpClient->request('get', $fullUrl);
-                    return $response->getBody()->getContents();
+                    $responseContentsJson = $response->getBody()->getContents();
+                    $responseArr = json_decode($responseContentsJson, true);
+                    Log::debug('quota_remaining=' . $responseArr['quota_remaining']); //https://stackapps.com/a/7832/55248
+                    $backoff = $responseArr['backoff'] ?? 0;
+                    if ($backoff) {
+                        Log::warning('Rate-limiting because backoff=' . $backoff . ' for ' . $uri);
+                        sleep($backoff); //ONEDAY: Figure out a better approach since `sleep` is highly discouraged. See https://github.com/ryancwalsh/StackExchangeBackupLaravelPHP/issues/11
+                    } else {
+                        usleep(self::PAUSE_BETWEEN_REQUESTS_MS * 1000); //preemptively rate-limiting the requests so that the API does not throw a 503 response. https://github.com/ryancwalsh/StackExchangeBackupLaravelPHP/issues/11
+                    }
+                    return $responseContentsJson;
                 });
         return $response;
     }
