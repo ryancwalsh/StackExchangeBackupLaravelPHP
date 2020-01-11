@@ -160,14 +160,15 @@ class ExportStackExchangeHelper {
      */
     public function getJsonFromApi($endpoint, $site_param, $page, $sort) {
         $responseJson = retry(2, function () use ($endpoint, $site_param, $page, $sort) {//https://laravel.com/docs/6.0/helpers#method-retry
-            $this->get('/me/' . $endpoint, [
+            $options = [
                 'site' => $site_param,
                 'pagesize' => 100,
                 'page' => $page,
                 'sort' => $sort,
                 'order' => 'desc',
                 'filter' => 'withbody'//https://api.stackexchange.com/docs/filters
-                    ], 60);
+            ];
+            return $this->get('/me/' . $endpoint, $options, 60);
         }, 100); //see https://github.com/ryancwalsh/StackExchangeBackupLaravelPHP/issues/11
         //Log::debug($responseJson);
         return $responseJson;
