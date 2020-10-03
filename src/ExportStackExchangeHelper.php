@@ -4,7 +4,9 @@ namespace ryancwalsh\StackExchangeBackupLaravel;
 
 use Cache;
 use GuzzleHttp\Client as HttpClient;
+use GuzzleHttp\HandlerStack;
 use Log;
+use Spatie\GuzzleRateLimiterMiddleware\RateLimiterMiddleware; // https://github.com/spatie/guzzle-rate-limiter-middleware
 use Storage;
 
 class ExportStackExchangeHelper {
@@ -16,6 +18,7 @@ class ExportStackExchangeHelper {
     const SE_FOLDER = 'StackExchange/';
     const DOT_ZIP = '.zip';
     const PAUSE_BETWEEN_REQUESTS_MS = 200;
+    const REQUESTS_PER_MIN = 60;
 
     protected $client_id;
     protected $client_secret;
@@ -112,8 +115,10 @@ class ExportStackExchangeHelper {
                     $params = array_merge($options, ['code' => $this->code, 'access_token' => $accessToken, 'key' => $this->key]);
                     //Log::debug(json_encode($params));
                     $fullUrl = self::API_URL . $this->version_prefix . $uri . '?' . http_build_query($params);
-                    //Log::debug($fullUrl);
-                    $httpClient = new HttpClient();
+                    //Log::debug($fullUrl);                    
+                    $stack = HandlerStack::create();
+                    $stack->push(RateLimiterMiddleware::perMinute(self::REQUESTS_PER_MIN)); // https://github.com/spatie/guzzle-rate-limiter-middleware
+                    $httpClient = new HttpClient(['handler' => $stack]);
                     $response = $httpClient->request('get', $fullUrl);
                     $responseContentsJson = $response->getBody()->getContents();
                     $responseArr = json_decode($responseContentsJson, true);
