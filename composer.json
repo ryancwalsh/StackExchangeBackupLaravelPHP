@@ -4,7 +4,7 @@
     "type": "package",
     "version": "2.0.5",
     "require": {
-        "guzzlehttp/guzzle": "^6.3",
+        "guzzlehttp/guzzle": "^7.0",
         "php": "^7.3",
         "laravel/framework": "6.20.*",
         "laravel/helpers": "^1.1",
