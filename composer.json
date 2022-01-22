@@ -10,7 +10,8 @@
         "laravel/helpers": "^1.1",
         "league/flysystem-aws-s3-v3": "^1.0",
         "spatie/laravel-backup": "^6.4",
-        "spatie/guzzle-rate-limiter-middleware": "^1.0"
+        "spatie/guzzle-rate-limiter-middleware": "^1.0",
+        "league/flysystem": "1.1.4"
     },
     "autoload": {
         "psr-4": {
