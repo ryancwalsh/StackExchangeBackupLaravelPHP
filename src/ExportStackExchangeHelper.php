@@ -17,7 +17,7 @@ class ExportStackExchangeHelper {
     const APP_FOLDER = 'app/';
     const SE_FOLDER = 'StackExchange/';
     const DOT_ZIP = '.zip';
-    const PAUSE_BETWEEN_REQUESTS_MS = 200;
+    const PAUSE_BETWEEN_REQUESTS_MS = 400;
     const REQUESTS_PER_MIN = 60;
 
     protected $client_id;

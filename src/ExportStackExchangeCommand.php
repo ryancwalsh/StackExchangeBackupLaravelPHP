@@ -57,7 +57,7 @@ class ExportStackExchangeCommand extends Command {
             }
         } catch (\Exception $e) {
             Log::error(__CLASS__ . ' ' . __FUNCTION__ . ' ' . $e);
-            $this->error('Error. Check the Laravel log (probably at /storage/logs/laravel.log).');
+            $this->error('Error. Check the Laravel log (probably at /storage/logs/laravel.log).' . ' See also: ' . $this->signature);
         }
         $this->info(Carbon::now() . ' Finished.');
     }
