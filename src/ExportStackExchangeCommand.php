@@ -46,6 +46,7 @@ class ExportStackExchangeCommand extends Command {
             $this->handleStackExchangeCode();
             $this->info(Carbon::now() . ' Starting.');
             $this->exportStackExchangeHelper->setMomentString(Carbon::now()->format(self::FILENAME_SAFE_FORMAT));
+            $this->info(Carbon::now() . ' calling getMyAssociatedSites');
             $mySites = $this->exportStackExchangeHelper->getMyAssociatedSites();
             $this->showListOfMySites($mySites);
             $this->info('===');
@@ -57,6 +58,7 @@ class ExportStackExchangeCommand extends Command {
             }
         } catch (\Exception $e) {
             Log::error(__CLASS__ . ' ' . __FUNCTION__ . ' ' . $e);
+            $this->error($e);
             $this->error('Error. Check the Laravel log (probably at /storage/logs/laravel.log).' . ' See also: ' . $this->signature);
         }
         $this->info(Carbon::now() . ' Finished.');
@@ -72,6 +74,7 @@ class ExportStackExchangeCommand extends Command {
 
     public function handleStackExchangeCode() {
         $code = $this->option('code') ?? Cache::get(self::CODE_CACHE_KEY);
+        var_dump($code);
         if (!$code) {//If code wasn't provided via option and wasn't available from cache, explain the process for fetching a code in the browser.
             $url = $this->exportStackExchangeHelper->getOauthUrl();
             $this->info('Visit ' . $url);
@@ -92,7 +95,7 @@ class ExportStackExchangeCommand extends Command {
       https://api.stackexchange.com/docs/me-comments
       https://api.stackexchange.com/docs/me-mentioned
       https://api.stackexchange.com/docs/me-favorites
-     * 
+     *
      * @param array $mySites
      */
     public function exportEachSite($mySites) {
@@ -101,7 +104,7 @@ class ExportStackExchangeCommand extends Command {
         foreach ($mySites as $site) {
             $this->showDetailsOfThisSite($site);
             $sitesToExclude = []; //['Stack Overflow', 'Server Fault', 'Super User'];
-            if (!in_array($site['site_name'], $sitesToExclude)) {            
+            if (!in_array($site['site_name'], $sitesToExclude)) {
                 foreach (self::ENDPOINTS as $endpoint => $sort) {
                     $this->exportStackExchangeHelper->saveJsonFromApi($endpoint, $site, $sort);
                 }
@@ -113,7 +116,7 @@ class ExportStackExchangeCommand extends Command {
 
     /**
      * Displays a list of all the sites that will be scraped so that the user knows what sites have been found.
-     * 
+     *
      * @param array $mySites
      */
     public function showListOfMySites($mySites) {
@@ -123,7 +126,7 @@ class ExportStackExchangeCommand extends Command {
     }
 
     /**
-     * 
+     *
      * @param array $site
      */
     public function showDetailsOfThisSite($site) {

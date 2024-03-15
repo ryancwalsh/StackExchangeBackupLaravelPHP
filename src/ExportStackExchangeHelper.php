@@ -5,6 +5,7 @@ namespace ryancwalsh\StackExchangeBackupLaravel;
 use Cache;
 use GuzzleHttp\Client as HttpClient;
 use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Exception\RequestException;
 use Log;
 use Spatie\GuzzleRateLimiterMiddleware\RateLimiterMiddleware; // https://github.com/spatie/guzzle-rate-limiter-middleware
 use Storage;
@@ -17,7 +18,7 @@ class ExportStackExchangeHelper {
     const APP_FOLDER = 'app/';
     const SE_FOLDER = 'StackExchange/';
     const DOT_ZIP = '.zip';
-    const PAUSE_BETWEEN_REQUESTS_MS = 400;
+    const PAUSE_BETWEEN_REQUESTS_MS = 200;
     const REQUESTS_PER_MIN = 60;
 
     protected $client_id;
@@ -30,7 +31,7 @@ class ExportStackExchangeHelper {
 
     /**
      *
-     * @var \Symfony\Component\Console\Style\OutputStyle 
+     * @var \Symfony\Component\Console\Style\OutputStyle
      */
     protected $consoleOutput;
 
@@ -48,7 +49,7 @@ class ExportStackExchangeHelper {
     }
 
     /**
-     * 
+     *
      * @param \Symfony\Component\Console\Style\OutputStyle $consoleOutput
      * @return $this
      */
@@ -58,7 +59,7 @@ class ExportStackExchangeHelper {
     }
 
     /**
-     * 
+     *
      * @return string
      */
     public function getOauthUrl() {
@@ -66,26 +67,57 @@ class ExportStackExchangeHelper {
     }
 
     /**
-     * 
+     *
      * @return string
      */
     public function getAccessTokenJson() {
         $accessTokenResponseJsonString = Cache::remember(self::ACCESS_TOKEN_CACHE_KEY, self::SESSION_SECONDS, function () {//https://laravel.com/docs/5.6/cache#retrieving-items-from-the-cache
                     $url = 'https://stackoverflow.com/oauth/access_token/json'; //https://api.stackexchange.com/docs/authentication
+                    //$url = 'https://stackoverflow.com/oauth/access_token/'; //https://api.stackexchange.com/docs/authentication
+
                     $payload = [
+                        // 'headers' => [
+                        //     'Content-Type' => 'application/x-www-form-urlencoded',
+                        // ],
                         'form_params' => [
                             'client_id' => $this->client_id,
                             'client_secret' => $this->client_secret,
                             'code' => $this->code,
                             'redirect_uri' => $this->redirect_uri
-                        ]
+                        ],
+                        'debug' => true
                     ]; //https://stackoverflow.com/a/34411797/470749
-                    //Log::debug('payload for getAccessToken: ' . json_encode($payload));
+                    Log::debug('payload for getAccessToken: ' . json_encode($payload)); // FIXNOW: Don't log sensitive stuff!
                     $httpClient = new HttpClient();
-                    $response = $httpClient->post($url, $payload);
-                    $accessTokenResponseJsonString = $response->getBody()->getContents();
-                    //Log::debug('$accessTokenResponseJsonString = ' . $accessTokenResponseJsonString);
-                    return $accessTokenResponseJsonString;
+                    try{
+                        $response = $httpClient->post($url, $payload);
+                        Log::debug('response for getAccessToken: ' . json_encode($response));
+                        // $this->info(Carbon::now() . 'response for getAccessToken: ' . json_encode($response));
+                        $accessTokenResponseJsonString = $response->getBody()->getContents();
+                        //Log::debug('$accessTokenResponseJsonString = ' . $accessTokenResponseJsonString);
+                        return $accessTokenResponseJsonString;
+                    } catch (RequestException $error) {
+                        if ($error->hasResponse()) {
+                            // Log response headers for failed request
+                            $response = $error->getResponse();
+                            $headers = $response->getHeaders();
+
+                            // Log headers information as needed
+                            // foreach ($headers as $name => $values) {
+                            //     foreach ($values as $value) {
+                            //         // Log or handle headers information
+                            //         // Example: Log::error("Header: $name: $value");
+                            //     }
+                            // }
+
+                            // You can also log the entire response body if needed
+                            $body = $response->getBody()->getContents();
+                            Log::debug('error response headers: ' . json_encode($headers));
+                            Log::debug('error response body: ' . json_encode($body));
+                        }
+
+                        return $response;
+                    }
                 });
         //Log::debug($accessTokenResponseJsonString);
         return $accessTokenResponseJsonString;
@@ -101,7 +133,7 @@ class ExportStackExchangeHelper {
     }
 
     /**
-     * 
+     *
      * @param string $uri
      * @param array $options
      * @param int $cacheMinutes
@@ -109,13 +141,14 @@ class ExportStackExchangeHelper {
      */
     public function get($uri = '', array $options = [], $cacheMinutes = self::SESSION_SECONDS) {
         $cacheKey = sha1($uri . json_encode($options));
-        $response = Cache::remember($cacheKey, $cacheMinutes, function () use ($uri, $options) {//https://laravel.com/docs/5.6/cache#retrieving-items-from-the-cache      
+        $response = Cache::remember($cacheKey, $cacheMinutes, function () use ($uri, $options) {//https://laravel.com/docs/5.6/cache#retrieving-items-from-the-cache
                     $accessTokenResponseJsonString = $this->getAccessTokenJson();
                     $accessToken = $this->getAccessTokenFromJson($accessTokenResponseJsonString);
+                    //$accessToken ="hnB6Dscttb7PDe4jCIBUrg))"; // FIXNOW: Remove this, and uncomment above. Figure out why that stopped working.
                     $params = array_merge($options, ['code' => $this->code, 'access_token' => $accessToken, 'key' => $this->key]);
                     //Log::debug(json_encode($params));
                     $fullUrl = self::API_URL . $this->version_prefix . $uri . '?' . http_build_query($params);
-                    //Log::debug($fullUrl);                    
+                    //Log::debug($fullUrl);
                     $stack = HandlerStack::create();
                     $stack->push(RateLimiterMiddleware::perMinute(self::REQUESTS_PER_MIN)); // https://github.com/spatie/guzzle-rate-limiter-middleware
                     $httpClient = new HttpClient(['handler' => $stack]);
@@ -136,7 +169,7 @@ class ExportStackExchangeHelper {
     }
 
     /**
-     * 
+     *
      * @return array
      */
     public function getMyAssociatedSites() {
@@ -149,7 +182,7 @@ class ExportStackExchangeHelper {
     }
 
     /**
-     * 
+     *
      * @param string $endpoint
      * @param string $site
      * @param string $sort
@@ -167,7 +200,7 @@ class ExportStackExchangeHelper {
     }
 
     /**
-     * 
+     *
      * @param string $endpoint
      * @param string $site_param
      * @param int $page
@@ -192,7 +225,7 @@ class ExportStackExchangeHelper {
 
     /**
      * Each of these methods operates on a single site at a time, identified by the site parameter. This parameter can be the full domain name (ie. "stackoverflow.com"), or a short form identified by api_site_parameter on the site object.
-     * 
+     *
      * @param array $site
      * @return string
      */
@@ -202,7 +235,7 @@ class ExportStackExchangeHelper {
     }
 
     /**
-     * 
+     *
      * @param string $filename
      * @param string $data
      */
@@ -257,7 +290,7 @@ class ExportStackExchangeHelper {
     }
 
     /**
-     * 
+     *
      * @param string $siteName
      * @return string
      */
@@ -267,7 +300,7 @@ class ExportStackExchangeHelper {
     }
 
     /**
-     * 
+     *
      * @param string $text
      * @return $this
      */
@@ -280,7 +313,7 @@ class ExportStackExchangeHelper {
     }
 
     /**
-     * 
+     *
      * @param string $text
      * @return $this
      */
@@ -295,7 +328,7 @@ class ExportStackExchangeHelper {
 
     /**
      * @see https://stackoverflow.com/a/1334949/470749
-     * 
+     *
      * @param string $folderPath
      * @param string $destinationZipFileName
      * @return bool
@@ -340,7 +373,7 @@ class ExportStackExchangeHelper {
     }
 
     /**
-     * 
+     *
      * @return string
      */
     public function getMomentString() {
@@ -348,7 +381,7 @@ class ExportStackExchangeHelper {
     }
 
     /**
-     * 
+     *
      * @param string $moment_string
      * @return $this
      */
