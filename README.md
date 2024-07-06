@@ -43,3 +43,40 @@ Visit https://api.stackexchange.com/docs to read the docs, and you can modify `E
 
  - I made this README.md file using https://stackedit.io/app.
  - https://help.github.com/articles/splitting-a-subfolder-out-into-a-new-repository/
+
+
+# Problems for Ryan locally. Workaround / hack.
+
+## The easier way to do what is shown in "Older notes"
+
+2024-07-06_135807_ET
+
+1. In WSL, run `cd /mnt/c/code/stackExchangeBackupDemo2 && php artisan exportStackExchange --forgetCache`.
+1. Visit https://reqbin.com/post-online and log in.
+1. In the left panel, click Saved > stackoverflow.
+1. change value of "code" to the value from the URL from the first step.
+1. Click send.
+1. From the new URL, copy the access token.
+1. Paste the access token into the "get" function (see FIXNOW) in `C:\code\stackExchangeBackupDemo2\vendor\ryancwalsh\stack-exchange-backup-laravel\src\ExportStackExchangeHelper.php`.
+
+## Older notes (stale?)
+
+https://stackapps.com/questions/10497/suddenly-getting-couldnt-parse-client-id#comment20685_10497
+By posting into reqbin.com/post-online in x-www-form-urlencoded mode instead of application/json, I'm able to retrieve an access_token.
+
+url: https://stackoverflow.com/oauth/access_token/json
+
+payload:
+client_id=____(from_laravel.log)______
+client_secret=____(from_laravel.log)______
+code=____(from_browser_URL)______
+redirect_uri=https://stackexchange.com/oauth/login_success
+
+Get the access_token from the result.
+
+Put a line like `return json_encode(['access_token'=> 'Ke4q2tsof5yfPUTf']);` as the first line of `public function getAccessTokenJson()` in `C:\code\stackExchangeBackupDemo2\vendor\ryancwalsh\stack-exchange-backup-laravel\src\ExportStackExchangeHelper.php`.
+
+
+In a new VSC window, open C:\code\stack-exchange-backup-laravel\src\ExportStackExchangeHelper.php in its project.
+
+Note that this is NOT symlinked to C:\code\stackExchangeBackupDemo2\vendor\ryancwalsh\stack-exchange-backup-laravel\src\ExportStackExchangeHelper.php
