@@ -51,13 +51,18 @@ Visit https://api.stackexchange.com/docs to read the docs, and you can modify `E
 
 2024-07-06_135807_ET
 
-1. In WSL, run `cd /mnt/c/code/stackExchangeBackupDemo2 && php artisan exportStackExchange --forgetCache`.
+1. In WSL (currently Ubuntu 20.04 LTS), and the terminal will ask you for your password. Provide it. Otherwise you'll get nameserver errors later. https://bitbucket.org/rcwalsh/issues/issues/500/temporary-failure-in-name-resolution-on
+1. Run `cd /mnt/c/code/stackExchangeBackupDemo2 && php artisan exportStackExchange --forgetCache`.
 1. Visit https://reqbin.com/post-online and log in.
 1. In the left panel, click Saved > stackoverflow.
 1. change value of "code" to the value from the URL from the first step.
 1. Click send.
 1. From the new URL, copy the access token.
 1. Paste the access token into the "get" function (see FIXNOW) in `C:\code\stackExchangeBackupDemo2\vendor\ryancwalsh\stack-exchange-backup-laravel\src\ExportStackExchangeHelper.php`.
+
+https://github.com/ryancwalsh/StackExchangeBackupLaravelPHP/issues/11#issuecomment-824137479
+
+https://stackapps.com/questions/10497/suddenly-getting-couldnt-parse-client-id?noredirect=1#comment20685_10497
 
 ## Older notes (stale?)
 
